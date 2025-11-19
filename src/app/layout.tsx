@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
   creator: "TusfactUS",
   publisher: "TusfactUS",
   
-  // ✅ FAVICON E ICONOS
+  // FAVICON E ICONOS
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
   },
   
-  // ✅ OPEN GRAPH (Facebook, LinkedIn, WhatsApp)
+  // OPEN GRAPH (Facebook, LinkedIn, WhatsApp)
   openGraph: {
     type: "website",
     locale: "es_ES",
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
     ],
   },
   
-  // ✅ TWITTER CARDS
+  // TWITTER CARDS
   twitter: {
     card: "summary_large_image",
     title: "TusfactUS - Generador de Facturas Online",
@@ -57,7 +58,7 @@ export const metadata: Metadata = {
     images: ["https://www.tusfactus.com/logo-factus-ok.png"],
   },
   
-  // ✅ ROBOTS (SEO)
+  // ROBOTS (SEO)
   robots: {
     index: true,
     follow: true,
@@ -70,10 +71,10 @@ export const metadata: Metadata = {
     },
   },
   
-  // ✅ MANIFEST PARA PWA
+  // MANIFEST PARA PWA
   manifest: "/manifest.json",
   
-  // ✅ CANONICAL Y ALTERNATIVAS
+  // CANONICAL Y ALTERNATIVAS
   metadataBase: new URL("https://www.tusfactus.com"),
   alternates: {
     canonical: "https://www.tusfactus.com",
@@ -105,7 +106,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
