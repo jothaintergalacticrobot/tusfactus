@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   creator: "TusfactUS",
   publisher: "TusfactUS",
   
-  // FAVICON E ICONOS
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -31,7 +30,6 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
   },
   
-  // OPEN GRAPH (Facebook, LinkedIn, WhatsApp)
   openGraph: {
     type: "website",
     locale: "es_ES",
@@ -50,7 +48,6 @@ export const metadata: Metadata = {
     ],
   },
   
-  // TWITTER CARDS
   twitter: {
     card: "summary_large_image",
     title: "TusfactUS - Generador de Facturas Online",
@@ -58,7 +55,6 @@ export const metadata: Metadata = {
     images: ["https://www.tusfactus.com/logo-factus-ok.png"],
   },
   
-  // ROBOTS (SEO)
   robots: {
     index: true,
     follow: true,
@@ -71,10 +67,8 @@ export const metadata: Metadata = {
     },
   },
   
-  // MANIFEST PARA PWA
   manifest: "/manifest.json",
   
-  // CANONICAL Y ALTERNATIVAS
   metadataBase: new URL("https://www.tusfactus.com"),
   alternates: {
     canonical: "https://www.tusfactus.com",

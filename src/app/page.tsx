@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
+import { track } from "@vercel/analytics";
 
 type Language = "es" | "en" | "ca";
 type CurrencyCode = "EUR" | "USD" | "GBP" | "JPY" | "CHF" | "MXN";
@@ -203,7 +204,7 @@ type Party = {
 
 const normalizeString = (value?: string | null) => (value ?? "").trim();
 
-// ✅ FUNCIONES AUXILIARES PARA GENERAR PDF CON DISEÑO MEJORADO
+// FUNCIONES AUXILIARES PARA GENERAR PDF CON DISEÑO MEJORADO
 const generatePDFHeader = (
   doc: jsPDF,
   tr: typeof t.es,
@@ -218,30 +219,26 @@ const generatePDFHeader = (
 ) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // ✅ INFORMACIÓN DE FACTURA - arriba a la derecha con diseño card
   const infoX = pageWidth - marginRight - 65;
   const infoY = cursorY;
   
-  // Fondo gris claro para el "card" de info
-  doc.setFillColor(250, 250, 250); // #fafafa
+  doc.setFillColor(250, 250, 250);
   doc.roundedRect(infoX - 3, infoY - 3, 68, 32, 2, 2, 'F');
   
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.setTextColor(115, 115, 115); // Color muted
+  doc.setTextColor(115, 115, 115);
   
   let infoLineY = infoY;
   
-  // Número de factura
   doc.text(tr.number.toUpperCase(), infoX, infoLineY);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.setTextColor(23, 23, 23); // Color principal
+  doc.setTextColor(23, 23, 23);
   doc.text(data.invoiceNumber || "-", infoX, infoLineY + 4);
   
   infoLineY += 10;
   
-  // Fecha de emisión
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(115, 115, 115);
@@ -253,7 +250,6 @@ const generatePDFHeader = (
   
   infoLineY += 10;
   
-  // Vencimiento
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(115, 115, 115);
@@ -278,36 +274,29 @@ const generatePDFPartyDetails = (
   const pageWidth = doc.internal.pageSize.getWidth();
   const columnWidth = (pageWidth - marginLeft - marginRight - 10) / 2;
   
-  // ✅ DISEÑO CON CARDS - Emisor y Cliente lado a lado
-  
-  // Card Emisor
   doc.setFillColor(250, 250, 250);
   doc.roundedRect(marginLeft, cursorY, columnWidth, 50, 2, 2, 'F');
-  doc.setDrawColor(229, 231, 235); // border-light
+  doc.setDrawColor(229, 231, 235);
   doc.setLineWidth(0.5);
   doc.roundedRect(marginLeft, cursorY, columnWidth, 50, 2, 2, 'S');
   
-  // Card Cliente
   const clientX = marginLeft + columnWidth + 10;
   doc.setFillColor(250, 250, 250);
   doc.roundedRect(clientX, cursorY, columnWidth, 50, 2, 2, 'F');
   doc.setDrawColor(229, 231, 235);
   doc.roundedRect(clientX, cursorY, columnWidth, 50, 2, 2, 'S');
   
-  // Títulos
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(23, 23, 23);
   doc.text(tr.yourData.toUpperCase(), marginLeft + 3, cursorY + 6);
   doc.text(tr.clientData.toUpperCase(), clientX + 3, cursorY + 6);
   
-  // Línea separadora bajo títulos
   doc.setDrawColor(229, 231, 235);
   doc.setLineWidth(0.3);
   doc.line(marginLeft + 3, cursorY + 8, marginLeft + columnWidth - 3, cursorY + 8);
   doc.line(clientX + 3, cursorY + 8, clientX + columnWidth - 3, cursorY + 8);
   
-  // Datos del emisor
   const sellerLines = [
     seller.name,
     seller.nif,
@@ -319,7 +308,6 @@ const generatePDFPartyDetails = (
     seller.iban,
   ].filter(Boolean) as string[];
 
-  // Datos del cliente
   const clientLines = [
     client.name,
     client.nif,
@@ -371,14 +359,12 @@ const generatePDFItemsTable = (
   const pageWidth = doc.internal.pageSize.getWidth();
   const tableWidth = pageWidth - marginLeft - marginRight;
   
-  // ✅ TÍTULO DE TABLA CON ESTILO
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(23, 23, 23);
   doc.text(tr.concepts.toUpperCase(), marginLeft, cursorY);
   cursorY += 8;
 
-  // ✅ HEADER DE TABLA CON FONDO TEAL
   const header = [
     tr.concept,
     tr.qty,
@@ -420,18 +406,16 @@ const generatePDFItemsTable = (
   };
 
   const drawTableHeader = () => {
-    // Fondo teal para el header
-    doc.setFillColor(13, 148, 136); // #0d9488
+    doc.setFillColor(13, 148, 136);
     doc.roundedRect(marginLeft, tableY, tableWidth, 8, 1, 1, 'F');
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.setTextColor(255, 255, 255); // Texto blanco
+    doc.setTextColor(255, 255, 255);
     
     header.forEach((text, i) => {
       const x = marginLeft + columnOffset(i) + 2;
       if (i === header.length - 1) {
-        // Última columna (Amount) alineada a la derecha
         doc.text(text, marginLeft + tableWidth - 5, tableY + 5, { align: 'right' });
       } else {
         doc.text(text, x, tableY + 5);
@@ -444,7 +428,6 @@ const generatePDFItemsTable = (
   ensureTableSpace(12);
   drawTableHeader();
 
-  // ✅ FILAS DE LA TABLA CON BORDES ALTERNADOS
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(23, 23, 23);
@@ -460,13 +443,11 @@ const generatePDFItemsTable = (
 
     ensureTableSpace(rowHeight + 2);
 
-    // Fondo alternado para mejor legibilidad
     if (rowIndex % 2 === 0) {
-      doc.setFillColor(250, 250, 250); // #fafafa
+      doc.setFillColor(250, 250, 250);
       doc.rect(marginLeft, tableY, tableWidth, rowHeight, 'F');
     }
 
-    // Borde inferior de fila
     doc.setDrawColor(229, 231, 235);
     doc.setLineWidth(0.2);
     doc.line(marginLeft, tableY + rowHeight, marginLeft + tableWidth, tableY + rowHeight);
@@ -477,7 +458,6 @@ const generatePDFItemsTable = (
       
       lines.forEach((line: string, idx: number) => {
         if (i === cellLines.length - 1) {
-          // Última columna alineada a la derecha
           doc.text(line, marginLeft + tableWidth - 5, tableY + 4 + lineHeight * idx, { align: 'right' });
         } else {
           doc.text(line, x, tableY + 4 + lineHeight * idx);
@@ -504,7 +484,6 @@ const generatePDFTotals = (
   const totalsWidth = 70;
   const totalsX = pageWidth - marginRight - totalsWidth;
   
-  // ✅ CARD DE TOTALES
   doc.setFillColor(250, 250, 250);
   doc.roundedRect(totalsX, cursorY, totalsWidth, 42, 2, 2, 'F');
   doc.setDrawColor(229, 231, 235);
@@ -522,8 +501,7 @@ const generatePDFTotals = (
 
   totalRows.forEach(({ label, value, isTotal }) => {
     if (isTotal) {
-      // Línea separadora antes del total
-      doc.setDrawColor(13, 148, 136); // Color teal
+      doc.setDrawColor(13, 148, 136);
       doc.setLineWidth(0.8);
       doc.line(totalsX + 3, totalY - 2, totalsX + totalsWidth - 3, totalY - 2);
       totalY += 3;
@@ -635,7 +613,6 @@ export default function InvoicePage() {
     [getNumericValue]
   );
 
-  // ✅ OPTIMIZACIÓN: Memoizar cálculos por línea
   const itemCalculations = useMemo(() => {
     return items.map((item) => {
       const price = getNonNegativeValue(item.unitPrice);
@@ -680,7 +657,6 @@ export default function InvoicePage() {
     return { base, vatTotal, irpfTotal, total };
   }, [itemCalculations]);
 
-  // ✅ OPTIMIZACIÓN: Validación simplificada
   const hasFormData = useMemo(() => {
     const hasAnyValue = (obj: Record<string, any>) =>
       Object.values(obj).some((val) => String(val || "").trim().length > 0);
@@ -755,11 +731,17 @@ export default function InvoicePage() {
         irpf: "0",
       },
     ]);
-  }, []);
+    
+    // Track añadir concepto
+    track('concept_added', { total_concepts: items.length + 1 });
+  }, [items.length]);
 
   const removeItem = useCallback((id: number) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
-  }, []);
+    
+    // Track eliminar concepto
+    track('concept_removed', { total_concepts: items.length - 1 });
+  }, [items.length]);
 
   const handleSellerChange = useCallback((field: keyof Party, value: string) => {
     setSeller((prev) => ({ ...prev, [field]: value }));
@@ -769,7 +751,6 @@ export default function InvoicePage() {
     setClient((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  // ✅ GENERACIÓN DE PDF CON DISEÑO MEJORADO (sin título, sin moneda)
   const handleDownload = useCallback(() => {
     if (!hasFormData) {
       setDownloadError(tr.emptyForm);
@@ -796,7 +777,6 @@ export default function InvoicePage() {
 
       let cursorY = topMargin;
 
-      // Header (sin título, sin moneda)
       cursorY = generatePDFHeader(
         doc,
         tr,
@@ -806,7 +786,6 @@ export default function InvoicePage() {
         cursorY
       );
 
-      // Party details
       cursorY = ensureSpace(cursorY, 55);
       cursorY = generatePDFPartyDetails(
         doc,
@@ -818,7 +797,6 @@ export default function InvoicePage() {
         cursorY
       );
 
-      // Items table
       cursorY = ensureSpace(cursorY, 20);
       cursorY = generatePDFItemsTable(
         doc,
@@ -836,7 +814,6 @@ export default function InvoicePage() {
         topMargin
       );
 
-      // Totals
       cursorY = ensureSpace(cursorY, 45);
       cursorY = generatePDFTotals(
         doc,
@@ -848,7 +825,6 @@ export default function InvoicePage() {
         cursorY
       );
 
-      // Notes
       if (notes.trim()) {
         cursorY = ensureSpace(cursorY, 20);
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -877,9 +853,24 @@ export default function InvoicePage() {
 
       const safeNumber = invoiceNumber || "sin-numero";
       doc.save(`factura-${safeNumber}.pdf`);
+      
+      // ✅ TRACK EVENTO: FACTURA GENERADA
+      track('invoice_generated', {
+        currency: currency,
+        language: language,
+        items_count: items.length,
+        has_notes: notes.trim().length > 0,
+        has_invoice_number: invoiceNumber.trim().length > 0,
+        has_dates: (issueDate.trim().length > 0 || dueDate.trim().length > 0),
+        total_amount: totals.total,
+      });
+      
     } catch (error) {
       console.error("Error generando PDF:", error);
       setDownloadError(tr.pdfError);
+      
+      // Track error
+      track('pdf_generation_error');
     }
   }, [
     hasFormData,
@@ -896,12 +887,13 @@ export default function InvoicePage() {
     formatDecimal,
     formatPercent,
     formatAmount,
+    currency,
+    language,
   ]);
 
   return (
     <div className={`app-shell app-shell--${theme}`}>
       <div className="app-shell__inner">
-        {/* Header */}
         <header className="app-header">
           <div className="app-logo">
             <img
@@ -920,7 +912,12 @@ export default function InvoicePage() {
                 id="language-select"
                 className="control-select"
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as Language)}
+                onChange={(e) => {
+                  const newLang = e.target.value as Language;
+                  setLanguage(newLang);
+                  // ✅ TRACK CAMBIO DE IDIOMA
+                  track('language_changed', { language: newLang });
+                }}
               >
                 {Object.entries(languageLabel).map(([code, label]) => (
                   <option key={code} value={code}>
@@ -938,7 +935,12 @@ export default function InvoicePage() {
                 id="currency-select"
                 className="control-select"
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
+                onChange={(e) => {
+                  const newCurrency = e.target.value as CurrencyCode;
+                  setCurrency(newCurrency);
+                  // ✅ TRACK CAMBIO DE MONEDA
+                  track('currency_changed', { currency: newCurrency });
+                }}
               >
                 {(Object.keys(currencyLabel) as CurrencyCode[]).map((code) => (
                   <option key={code} value={code}>
@@ -953,9 +955,12 @@ export default function InvoicePage() {
               <button
                 type="button"
                 className={`theme-toggle theme-toggle--${theme}`}
-                onClick={() =>
-                  setTheme((prev) => (prev === "light" ? "dark" : "light"))
-                }
+                onClick={() => {
+                  const newTheme = theme === "light" ? "dark" : "light";
+                  setTheme(newTheme);
+                  // ✅ TRACK CAMBIO DE TEMA
+                  track('theme_changed', { theme: newTheme });
+                }}
                 aria-pressed={theme === "dark"}
                 aria-label={theme === "light" ? tr.themeDark : tr.themeLight}
               >
@@ -972,7 +977,6 @@ export default function InvoicePage() {
           </div>
         </header>
 
-        {/* Top card */}
         <section className="card card--top-grid">
           <div className="field">
             <label htmlFor="invoice-number">{tr.number}</label>
@@ -1003,7 +1007,6 @@ export default function InvoicePage() {
           </div>
         </section>
 
-        {/* Seller / Client */}
         <section className="card card--two-columns">
           <div className="card-column">
             <h2 className="card-title">{tr.yourData}</h2>
@@ -1198,7 +1201,6 @@ export default function InvoicePage() {
           </div>
         </section>
 
-        {/* Items */}
         <section className="card">
           <div className="card-header">
             <h2 className="card-title">{tr.concepts}</h2>
@@ -1306,7 +1308,6 @@ export default function InvoicePage() {
           </button>
         </section>
 
-        {/* Notes + Totals */}
         <section className="bottom-grid">
           <div className="card">
             <div className="field field--full">
