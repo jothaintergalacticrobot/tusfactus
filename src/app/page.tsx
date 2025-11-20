@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
-import { track } from "@vercel/analytics";
 
 type Language = "es" | "en" | "ca";
 type CurrencyCode = "EUR" | "USD" | "GBP" | "JPY" | "CHF" | "MXN";
@@ -42,7 +41,8 @@ const parseNumberFromInput = (input: string) => {
   const parts = normalized.split(".");
   if (parts.length > 2) {
     const decimal = parts.pop();
-    return parseFloat(parts.join("") + "." + decimal);
+    const integer = parts.join("");
+    return parseFloat(integer + "." + decimal);
   }
 
   return parseFloat(normalized);
@@ -88,8 +88,7 @@ const i18n: Record<Language, Record<string, string>> = {
     totalDiscount: "Descuento total",
     totalTax: "IVA total",
     total: "Total",
-    downloadPDF: "Descargar PDF",
-    fillRequired: "Rellena los datos requeridos",
+    downloadPDF: "Descargar factura",
     notes: "Notas adicionales",
     theme: "Tema",
     language: "Idioma",
@@ -123,8 +122,7 @@ const i18n: Record<Language, Record<string, string>> = {
     totalDiscount: "Total discount",
     totalTax: "Total tax",
     total: "Total",
-    downloadPDF: "Download PDF",
-    fillRequired: "Fill in the required data",
+    downloadPDF: "Download invoice",
     notes: "Additional notes",
     theme: "Theme",
     language: "Language",
@@ -158,8 +156,7 @@ const i18n: Record<Language, Record<string, string>> = {
     totalDiscount: "Descompte total",
     totalTax: "IVA total",
     total: "Total",
-    downloadPDF: "Descarregar PDF",
-    fillRequired: "Omple les dades requerides",
+    downloadPDF: "Descarregar factura",
     notes: "Notes addicionals",
     theme: "Tema",
     language: "Idioma",
@@ -307,13 +304,6 @@ export default function Home() {
 
   const generatePDF = useCallback(() => {
     if (!canDownload) return;
-
-    track("invoice_downloaded", {
-      language: lang,
-      currency,
-      items_count: items.length,
-      total_amount: totals.total,
-    });
 
     const doc = new jsPDF();
     const margin = 14;
@@ -1018,9 +1008,6 @@ export default function Home() {
               >
                 {t.downloadPDF}
               </button>
-              {!canDownload && (
-                <p className="form-warning">{t.fillRequired}</p>
-              )}
             </div>
           </div>
 
