@@ -42,32 +42,28 @@ const parseNumberFromInput = (input: string) => {
   if (parts.length > 2) {
     const decimal = parts.pop();
     const integer = parts.join("");
-    return parseFloat(integer + "." + decimal);
+    const recomposed = `${integer}.${decimal}`;
+    const parsed = parseFloat(recomposed);
+    return Number.isNaN(parsed) ? 0 : parsed;
   }
 
-  return parseFloat(normalized);
+  const parsed = parseFloat(normalized);
+  return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-const formatNumberForDisplay = (
-  num: number,
-  lang: Language,
-  currency: CurrencyCode
-) => {
-  const locale = localeMap[lang];
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-  }).format(num);
-};
+type PercentField = "discount" | "vat" | "irpf";
 
-const i18n: Record<Language, Record<string, string>> = {
+const t = {
   es: {
-    invoiceNumber: "Número",
+    title: "Generador de facturas",
+    number: "Número",
     issueDate: "Fecha de emisión",
     dueDate: "Vencimiento",
+    currency: "Moneda",
     yourData: "Tus datos",
     clientData: "Datos del cliente",
-    nameCompany: "Nombre / Empresa",
+    name: "Nombre / Empresa",
+    clientName: "Nombre empresa o comercial",
     nif: "NIF",
     phone: "Teléfono",
     email: "Email",
@@ -76,32 +72,39 @@ const i18n: Record<Language, Record<string, string>> = {
     postalCode: "Código postal",
     country: "País",
     iban: "IBAN",
-    items: "Partidas",
-    addItem: "Añadir partida",
-    description: "Descripción",
-    quantity: "Cantidad",
-    price: "Precio",
-    discount: "Descuento",
-    tax: "IVA",
+    concepts: "Conceptos",
+    concept: "Concepto",
+    unitPrice: "Precio/Uni",
+    qty: "Cant.",
+    discount: "Dto %",
+    vat: "IVA %",
+    irpf: "IRPF %",
     amount: "Importe",
-    subtotal: "Subtotal",
-    totalDiscount: "Descuento total",
-    totalTax: "IVA total",
-    total: "Total",
-    downloadPDF: "Descargar factura",
-    notes: "Notas adicionales",
-    theme: "Tema",
+    notes: "Notas",
+    defaultNotes: "Gracias por su confianza.",
+    addConcept: "+ Añadir nuevo concepto",
+    createAndDownload: "Crear y descargar",
+    emptyForm: "Introduce al menos un dato para generar la factura.",
+    totalsTaxBase: "Base imponible",
+    totalsVat: "IVA total",
+    totalsIrpf: "IRPF total",
+    totalsTotal: "TOTAL",
     language: "Idioma",
-    currency: "Moneda",
-    clientName: "Nombre empresa o comercial",
+    theme: "Tema",
+    themeLight: "Claro",
+    themeDark: "Oscuro",
+    pdfError: "Error al generar la factura. Por favor, inténtalo de nuevo.",
   },
   en: {
-    invoiceNumber: "Number",
+    title: "Invoice generator",
+    number: "Number",
     issueDate: "Issue date",
     dueDate: "Due date",
-    yourData: "Your data",
-    clientData: "Client data",
-    nameCompany: "Name / Company",
+    currency: "Currency",
+    yourData: "Your details",
+    clientData: "Client details",
+    name: "Name / Company",
+    clientName: "Client / Company name",
     nif: "Tax ID",
     phone: "Phone",
     email: "Email",
@@ -110,32 +113,39 @@ const i18n: Record<Language, Record<string, string>> = {
     postalCode: "Postal code",
     country: "Country",
     iban: "IBAN",
-    items: "Items",
-    addItem: "Add item",
-    description: "Description",
-    quantity: "Qty",
-    price: "Price",
-    discount: "Disc.",
-    tax: "Tax",
+    concepts: "Items",
+    concept: "Item",
+    unitPrice: "Unit price",
+    qty: "Qty",
+    discount: "Disc %",
+    vat: "VAT %",
+    irpf: "Withholding %",
     amount: "Amount",
-    subtotal: "Subtotal",
-    totalDiscount: "Total discount",
-    totalTax: "Total tax",
-    total: "Total",
-    downloadPDF: "Download invoice",
-    notes: "Additional notes",
-    theme: "Theme",
+    notes: "Notes",
+    defaultNotes: "Thank you for your business.",
+    addConcept: "+ Add new item",
+    createAndDownload: "Create and download",
+    emptyForm: "Enter at least one field before generating the invoice.",
+    totalsTaxBase: "Tax base",
+    totalsVat: "VAT total",
+    totalsIrpf: "Withholding total",
+    totalsTotal: "TOTAL",
     language: "Language",
-    currency: "Currency",
-    clientName: "Business or trade name",
+    theme: "Theme",
+    themeLight: "Light",
+    themeDark: "Dark",
+    pdfError: "Error generating invoice. Please try again.",
   },
   ca: {
-    invoiceNumber: "Número",
+    title: "Generador de factures",
+    number: "Número",
     issueDate: "Data d'emissió",
     dueDate: "Venciment",
+    currency: "Moneda",
     yourData: "Les teves dades",
     clientData: "Dades del client",
-    nameCompany: "Nom / Empresa",
+    name: "Nom / Empresa",
+    clientName: "Nom empresa o comercial",
     nif: "NIF",
     phone: "Telèfon",
     email: "Email",
@@ -144,878 +154,1218 @@ const i18n: Record<Language, Record<string, string>> = {
     postalCode: "Codi postal",
     country: "País",
     iban: "IBAN",
-    items: "Partides",
-    addItem: "Afegir partida",
-    description: "Descripció",
-    quantity: "Quantitat",
-    price: "Preu",
-    discount: "Descompte",
-    tax: "IVA",
+    concepts: "Conceptes",
+    concept: "Concepte",
+    unitPrice: "Preu/Uni",
+    qty: "Quant.",
+    discount: "Dte %",
+    vat: "IVA %",
+    irpf: "IRPF %",
     amount: "Import",
-    subtotal: "Subtotal",
-    totalDiscount: "Descompte total",
-    totalTax: "IVA total",
-    total: "Total",
-    downloadPDF: "Descarregar factura",
-    notes: "Notes addicionals",
-    theme: "Tema",
+    notes: "Notes",
+    defaultNotes: "Gràcies per la confiança.",
+    addConcept: "+ Afegir nou concepte",
+    createAndDownload: "Crear i descarregar",
+    emptyForm: "Introdueix com a mínim una dada per generar la factura.",
+    totalsTaxBase: "Base imposable",
+    totalsVat: "IVA total",
+    totalsIrpf: "IRPF total",
+    totalsTotal: "TOTAL",
     language: "Idioma",
-    currency: "Moneda",
-    clientName: "Nom empresa o comercial",
+    theme: "Tema",
+    themeLight: "Clar",
+    themeDark: "Fosc",
+    pdfError: "Error en generar la factura. Siusplau, torna-ho a intentar.",
   },
 };
 
-interface InvoiceItem {
+type LineItem = {
+  id: number;
   description: string;
+  unitPrice: string;
   quantity: string;
-  price: string;
   discount: string;
-  tax: string;
-}
+  vat: string;
+  irpf: string;
+};
 
-export default function Home() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [lang, setLang] = useState<Language>("es");
+type Party = {
+  name: string;
+  nif: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  iban?: string;
+};
+
+const normalizeString = (value?: string | null) => (value ?? "").trim();
+
+// ✅ FUNCIONES AUXILIARES PARA GENERAR PDF CON DISEÑO MEJORADO
+const generatePDFHeader = (
+  doc: jsPDF,
+  tr: typeof t.es,
+  data: {
+    invoiceNumber: string;
+    issueDate: string;
+    dueDate: string;
+  },
+  marginLeft: number,
+  marginRight: number,
+  cursorY: number
+) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  // ✅ INFORMACIÓN DE FACTURA - arriba a la derecha con diseño card
+  const infoX = pageWidth - marginRight - 65;
+  const infoY = cursorY;
+  
+  // Fondo gris claro para el "card" de info
+  doc.setFillColor(250, 250, 250); // #fafafa
+  doc.roundedRect(infoX - 3, infoY - 3, 68, 32, 2, 2, 'F');
+  
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(115, 115, 115); // Color muted
+  
+  let infoLineY = infoY;
+  
+  // Número de factura
+  doc.text(tr.number.toUpperCase(), infoX, infoLineY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(23, 23, 23); // Color principal
+  doc.text(data.invoiceNumber || "-", infoX, infoLineY + 4);
+  
+  infoLineY += 10;
+  
+  // Fecha de emisión
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(115, 115, 115);
+  doc.text(tr.issueDate.toUpperCase(), infoX, infoLineY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(23, 23, 23);
+  doc.text(data.issueDate || "-", infoX, infoLineY + 4);
+  
+  infoLineY += 10;
+  
+  // Vencimiento
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(115, 115, 115);
+  doc.text(tr.dueDate.toUpperCase(), infoX, infoLineY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(23, 23, 23);
+  doc.text(data.dueDate || "-", infoX, infoLineY + 4);
+
+  return cursorY + 40;
+};
+
+const generatePDFPartyDetails = (
+  doc: jsPDF,
+  seller: Party,
+  client: Party,
+  tr: typeof t.es,
+  marginLeft: number,
+  marginRight: number,
+  cursorY: number
+) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const columnWidth = (pageWidth - marginLeft - marginRight - 10) / 2;
+  
+  // ✅ DISEÑO CON CARDS - Emisor y Cliente lado a lado
+  
+  // Card Emisor
+  doc.setFillColor(250, 250, 250);
+  doc.roundedRect(marginLeft, cursorY, columnWidth, 50, 2, 2, 'F');
+  doc.setDrawColor(229, 231, 235); // border-light
+  doc.setLineWidth(0.5);
+  doc.roundedRect(marginLeft, cursorY, columnWidth, 50, 2, 2, 'S');
+  
+  // Card Cliente
+  const clientX = marginLeft + columnWidth + 10;
+  doc.setFillColor(250, 250, 250);
+  doc.roundedRect(clientX, cursorY, columnWidth, 50, 2, 2, 'F');
+  doc.setDrawColor(229, 231, 235);
+  doc.roundedRect(clientX, cursorY, columnWidth, 50, 2, 2, 'S');
+  
+  // Títulos
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(23, 23, 23);
+  doc.text(tr.yourData.toUpperCase(), marginLeft + 3, cursorY + 6);
+  doc.text(tr.clientData.toUpperCase(), clientX + 3, cursorY + 6);
+  
+  // Línea separadora bajo títulos
+  doc.setDrawColor(229, 231, 235);
+  doc.setLineWidth(0.3);
+  doc.line(marginLeft + 3, cursorY + 8, marginLeft + columnWidth - 3, cursorY + 8);
+  doc.line(clientX + 3, cursorY + 8, clientX + columnWidth - 3, cursorY + 8);
+  
+  // Datos del emisor
+  const sellerLines = [
+    seller.name,
+    seller.nif,
+    seller.address,
+    `${seller.postalCode} ${seller.city}`.trim(),
+    seller.country,
+    seller.phone,
+    seller.email,
+    seller.iban,
+  ].filter(Boolean) as string[];
+
+  // Datos del cliente
+  const clientLines = [
+    client.name,
+    client.nif,
+    client.address,
+    `${client.postalCode} ${client.city}`.trim(),
+    client.country,
+    client.phone,
+    client.email,
+  ].filter(Boolean) as string[];
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(23, 23, 23);
+  
+  let sellerY = cursorY + 12;
+  sellerLines.forEach((line) => {
+    if (sellerY < cursorY + 47) {
+      doc.text(line, marginLeft + 3, sellerY);
+      sellerY += 4;
+    }
+  });
+  
+  let clientY = cursorY + 12;
+  clientLines.forEach((line) => {
+    if (clientY < cursorY + 47) {
+      doc.text(line, clientX + 3, clientY);
+      clientY += 4;
+    }
+  });
+
+  return cursorY + 55;
+};
+
+const generatePDFItemsTable = (
+  doc: jsPDF,
+  items: LineItem[],
+  itemCalculations: any[],
+  tr: typeof t.es,
+  formatDecimal: (value: number) => string,
+  formatPercent: (value: number) => string,
+  formatAmount: (value: number) => string,
+  marginLeft: number,
+  marginRight: number,
+  cursorY: number,
+  pageHeight: number,
+  bottomMargin: number,
+  topMargin: number
+) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const tableWidth = pageWidth - marginLeft - marginRight;
+  
+  // ✅ TÍTULO DE TABLA CON ESTILO
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(23, 23, 23);
+  doc.text(tr.concepts.toUpperCase(), marginLeft, cursorY);
+  cursorY += 8;
+
+  // ✅ HEADER DE TABLA CON FONDO TEAL
+  const header = [
+    tr.concept,
+    tr.qty,
+    tr.unitPrice,
+    tr.discount,
+    tr.vat,
+    tr.irpf,
+    tr.amount,
+  ];
+
+  const rows = itemCalculations.map((calc, index) => {
+    const item = items[index];
+    return [
+      item.description || "-",
+      formatDecimal(calc.qty),
+      formatDecimal(calc.price),
+      formatPercent(calc.discount),
+      formatPercent(calc.vat),
+      formatPercent(calc.irpf),
+      formatAmount(calc.lineTotal),
+    ];
+  });
+
+  const colWidths = [50, 12, 20, 15, 15, 15, 33];
+  let tableY = cursorY;
+
+  const columnOffset = (index: number) =>
+    colWidths.slice(0, index).reduce((a, b) => a + b, 0);
+
+  const ensureTableSpace = (heightNeeded: number) => {
+    if (tableY + heightNeeded > pageHeight - bottomMargin) {
+      doc.addPage();
+      tableY = topMargin;
+      drawTableHeader();
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(23, 23, 23);
+    }
+  };
+
+  const drawTableHeader = () => {
+    // Fondo teal para el header
+    doc.setFillColor(13, 148, 136); // #0d9488
+    doc.roundedRect(marginLeft, tableY, tableWidth, 8, 1, 1, 'F');
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255); // Texto blanco
+    
+    header.forEach((text, i) => {
+      const x = marginLeft + columnOffset(i) + 2;
+      if (i === header.length - 1) {
+        // Última columna (Amount) alineada a la derecha
+        doc.text(text, marginLeft + tableWidth - 5, tableY + 5, { align: 'right' });
+      } else {
+        doc.text(text, x, tableY + 5);
+      }
+    });
+    
+    tableY += 9;
+  };
+
+  ensureTableSpace(12);
+  drawTableHeader();
+
+  // ✅ FILAS DE LA TABLA CON BORDES ALTERNADOS
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(23, 23, 23);
+  const lineHeight = 6;
+
+  rows.forEach((row, rowIndex) => {
+    const cellLines = row.map(
+      (cell, i) =>
+        doc.splitTextToSize(String(cell), colWidths[i] - 3) as string[]
+    );
+    const maxLines = Math.max(1, ...cellLines.map((lines) => lines.length));
+    const rowHeight = maxLines * lineHeight;
+
+    ensureTableSpace(rowHeight + 2);
+
+    // Fondo alternado para mejor legibilidad
+    if (rowIndex % 2 === 0) {
+      doc.setFillColor(250, 250, 250); // #fafafa
+      doc.rect(marginLeft, tableY, tableWidth, rowHeight, 'F');
+    }
+
+    // Borde inferior de fila
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.2);
+    doc.line(marginLeft, tableY + rowHeight, marginLeft + tableWidth, tableY + rowHeight);
+
+    cellLines.forEach((lines, i) => {
+      const offset = columnOffset(i);
+      const x = marginLeft + offset + 2;
+      
+      lines.forEach((line: string, idx: number) => {
+        if (i === cellLines.length - 1) {
+          // Última columna alineada a la derecha
+          doc.text(line, marginLeft + tableWidth - 5, tableY + 4 + lineHeight * idx, { align: 'right' });
+        } else {
+          doc.text(line, x, tableY + 4 + lineHeight * idx);
+        }
+      });
+    });
+
+    tableY += rowHeight;
+  });
+
+  return tableY + 5;
+};
+
+const generatePDFTotals = (
+  doc: jsPDF,
+  totals: { base: number; vatTotal: number; irpfTotal: number; total: number },
+  tr: typeof t.es,
+  formatAmount: (value: number) => string,
+  marginLeft: number,
+  marginRight: number,
+  cursorY: number
+) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const totalsWidth = 70;
+  const totalsX = pageWidth - marginRight - totalsWidth;
+  
+  // ✅ CARD DE TOTALES
+  doc.setFillColor(250, 250, 250);
+  doc.roundedRect(totalsX, cursorY, totalsWidth, 42, 2, 2, 'F');
+  doc.setDrawColor(229, 231, 235);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(totalsX, cursorY, totalsWidth, 42, 2, 2, 'S');
+  
+  const totalRows = [
+    { label: tr.totalsTaxBase, value: totals.base },
+    { label: tr.totalsVat, value: totals.vatTotal },
+    { label: tr.totalsIrpf, value: totals.irpfTotal },
+    { label: tr.totalsTotal, value: totals.total, isTotal: true },
+  ];
+
+  let totalY = cursorY + 6;
+
+  totalRows.forEach(({ label, value, isTotal }) => {
+    if (isTotal) {
+      // Línea separadora antes del total
+      doc.setDrawColor(13, 148, 136); // Color teal
+      doc.setLineWidth(0.8);
+      doc.line(totalsX + 3, totalY - 2, totalsX + totalsWidth - 3, totalY - 2);
+      totalY += 3;
+    }
+    
+    doc.setFont("helvetica", isTotal ? "bold" : "normal");
+    doc.setFontSize(isTotal ? 11 : 9);
+    doc.setTextColor(isTotal ? 23 : 115, isTotal ? 23 : 115, isTotal ? 23 : 115);
+    
+    doc.text(label, totalsX + 3, totalY);
+    doc.text(formatAmount(value), totalsX + totalsWidth - 3, totalY, { align: 'right' });
+    
+    totalY += isTotal ? 10 : 8;
+  });
+
+  return cursorY + 45;
+};
+
+export default function InvoicePage() {
+  const [language, setLanguage] = useState<Language>("es");
   const [currency, setCurrency] = useState<CurrencyCode>("EUR");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [issueDate, setIssueDate] = useState("");
   const [dueDate, setDueDate] = useState("");
 
-  const [ownerName, setOwnerName] = useState("");
-  const [ownerNif, setOwnerNif] = useState("");
-  const [ownerPhone, setOwnerPhone] = useState("");
-  const [ownerEmail, setOwnerEmail] = useState("");
-  const [ownerAddress, setOwnerAddress] = useState("");
-  const [ownerCity, setOwnerCity] = useState("");
-  const [ownerPostalCode, setOwnerPostalCode] = useState("");
-  const [ownerCountry, setOwnerCountry] = useState("");
-  const [ownerIban, setOwnerIban] = useState("");
+  const [seller, setSeller] = useState<Party>({
+    name: "",
+    nif: "",
+    phone: "",
+    email: "",
+    address: "",
+    city: "",
+    postalCode: "",
+    country: "",
+    iban: "",
+  });
 
-  const [clientName, setClientName] = useState("");
-  const [clientNif, setClientNif] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
-  const [clientCity, setClientCity] = useState("");
-  const [clientPostalCode, setClientPostalCode] = useState("");
-  const [clientCountry, setClientCountry] = useState("");
+  const [client, setClient] = useState<Party>({
+    name: "",
+    nif: "",
+    phone: "",
+    email: "",
+    address: "",
+    city: "",
+    postalCode: "",
+    country: "",
+  });
 
-  const [items, setItems] = useState<InvoiceItem[]>([
-    { description: "", quantity: "", price: "", discount: "", tax: "" },
+  const [items, setItems] = useState<LineItem[]>([
+    {
+      id: 1,
+      description: "",
+      unitPrice: "",
+      quantity: "",
+      discount: "",
+      vat: "21",
+      irpf: "0",
+    },
   ]);
 
   const [notes, setNotes] = useState("");
+  const [downloadError, setDownloadError] = useState("");
+
+  const tr = t[language];
+  const locale = localeMap[language];
+
+  const amountFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    [locale, currency]
+  );
+
+  const decimalFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+    [locale]
+  );
+
+  const formatAmount = useCallback(
+    (value: number) => amountFormatter.format(value),
+    [amountFormatter]
+  );
+  const formatDecimal = useCallback(
+    (value: number) => (Number.isFinite(value) ? decimalFormatter.format(value) : "0"),
+    [decimalFormatter]
+  );
+  const formatPercent = useCallback(
+    (value: number) => `${Number.isFinite(value) ? decimalFormatter.format(value) : "0"}%`,
+    [decimalFormatter]
+  );
+
+  const getNumericValue = useCallback((value: string) => parseNumberFromInput(value), []);
+  const getNonNegativeValue = useCallback(
+    (value: string) => Math.max(0, getNumericValue(value)),
+    [getNumericValue]
+  );
+  const getPercentageValue = useCallback(
+    (value: string) => Math.max(0, Math.min(100, getNumericValue(value))),
+    [getNumericValue]
+  );
+
+  // ✅ OPTIMIZACIÓN: Memoizar cálculos por línea
+  const itemCalculations = useMemo(() => {
+    return items.map((item) => {
+      const price = getNonNegativeValue(item.unitPrice);
+      const qty = getNonNegativeValue(item.quantity);
+      const discount = getPercentageValue(item.discount);
+      const vat = getPercentageValue(item.vat);
+      const irpf = getPercentageValue(item.irpf);
+
+      const base = price * qty * (1 - discount / 100);
+      const lineVat = base * (vat / 100);
+      const lineIrpf = base * (irpf / 100);
+      const lineTotal = base + lineVat - lineIrpf;
+
+      return {
+        id: item.id,
+        price,
+        qty,
+        discount,
+        vat,
+        irpf,
+        base,
+        lineVat,
+        lineIrpf,
+        lineTotal,
+      };
+    });
+  }, [items, getNonNegativeValue, getPercentageValue]);
+
+  const totals = useMemo(() => {
+    let base = 0;
+    let vatTotal = 0;
+    let irpfTotal = 0;
+
+    itemCalculations.forEach((calc) => {
+      base += calc.base;
+      vatTotal += calc.lineVat;
+      irpfTotal += calc.lineIrpf;
+    });
+
+    const total = base + vatTotal - irpfTotal;
+
+    return { base, vatTotal, irpfTotal, total };
+  }, [itemCalculations]);
+
+  // ✅ OPTIMIZACIÓN: Validación simplificada
+  const hasFormData = useMemo(() => {
+    const hasAnyValue = (obj: Record<string, any>) =>
+      Object.values(obj).some((val) => String(val || "").trim().length > 0);
+
+    return (
+      hasAnyValue(seller) ||
+      hasAnyValue(client) ||
+      [invoiceNumber, issueDate, dueDate, notes].some((v) => v.trim()) ||
+      items.some((item) =>
+        ["description", "unitPrice", "quantity", "discount"].some((key) =>
+          String(item[key as keyof LineItem] || "").trim()
+        )
+      )
+    );
+  }, [seller, client, invoiceNumber, issueDate, dueDate, notes, items]);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as
-      | "light"
-      | "dark"
-      | null;
-    if (savedTheme) setTheme(savedTheme);
+    if (hasFormData && downloadError) {
+      setDownloadError("");
+    }
+  }, [hasFormData, downloadError]);
 
-    const savedLang = localStorage.getItem("lang") as Language | null;
-    if (savedLang) setLang(savedLang);
+  const updateItem = useCallback((id: number, field: keyof LineItem, value: string) => {
+    const numericFields: (keyof LineItem)[] = [
+      "unitPrice",
+      "quantity",
+      "discount",
+      "vat",
+      "irpf",
+    ];
+    const isNumericField = numericFields.includes(field);
+    const sanitizedValue = isNumericField ? sanitizeNumericInput(value) : value;
 
-    const savedCurrency = localStorage.getItem("currency") as
-      | CurrencyCode
-      | null;
-    if (savedCurrency) setCurrency(savedCurrency);
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, [field]: sanitizedValue } : item
+      )
+    );
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  useEffect(() => {
-    localStorage.setItem("lang", lang);
-  }, [lang]);
-
-  useEffect(() => {
-    localStorage.setItem("currency", currency);
-  }, [currency]);
-
-  const t = i18n[lang];
+  const clampPercentField = useCallback(
+    (id: number, field: PercentField) => {
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                [field]: (() => {
+                  const raw = item[field].trim();
+                  if (!raw) return "";
+                  const clamped = getPercentageValue(raw);
+                  return formatDecimal(clamped);
+                })(),
+              }
+            : item
+        )
+      );
+    },
+    [getPercentageValue, formatDecimal]
+  );
 
   const addItem = useCallback(() => {
     setItems((prev) => [
       ...prev,
-      { description: "", quantity: "", price: "", discount: "", tax: "" },
+      {
+        id: Date.now(),
+        description: "",
+        unitPrice: "",
+        quantity: "",
+        discount: "",
+        vat: "21",
+        irpf: "0",
+      },
     ]);
   }, []);
 
-  const removeItem = useCallback((index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
+  const removeItem = useCallback((id: number) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
-  const updateItem = useCallback(
-    (
-      index: number,
-      field: keyof InvoiceItem,
-      value: string,
-      isNumeric = false
-    ) => {
-      setItems((prev) => {
-        const updated = [...prev];
-        const sanitizedValue = isNumeric ? sanitizeNumericInput(value) : value;
-        updated[index] = { ...updated[index], [field]: sanitizedValue };
-        return updated;
-      });
-    },
-    []
-  );
+  const handleSellerChange = useCallback((field: keyof Party, value: string) => {
+    setSeller((prev) => ({ ...prev, [field]: value }));
+  }, []);
 
-  const totals = useMemo(() => {
-    let subtotal = 0;
-    let totalDiscountAmount = 0;
-    let totalTaxAmount = 0;
+  const handleClientChange = useCallback((field: keyof Party, value: string) => {
+    setClient((prev) => ({ ...prev, [field]: value }));
+  }, []);
 
-    items.forEach((item) => {
-      const qty = parseNumberFromInput(item.quantity);
-      const price = parseNumberFromInput(item.price);
-      const discountPct = parseNumberFromInput(item.discount);
-      const taxPct = parseNumberFromInput(item.tax);
-
-      const lineSubtotal = qty * price;
-      const lineDiscount = lineSubtotal * (discountPct / 100);
-      const lineAfterDiscount = lineSubtotal - lineDiscount;
-      const lineTax = lineAfterDiscount * (taxPct / 100);
-
-      subtotal += lineSubtotal;
-      totalDiscountAmount += lineDiscount;
-      totalTaxAmount += lineTax;
-    });
-
-    const total = subtotal - totalDiscountAmount + totalTaxAmount;
-
-    return {
-      subtotal,
-      totalDiscountAmount,
-      totalTaxAmount,
-      total,
-    };
-  }, [items]);
-
-  const canDownload =
-    invoiceNumber.trim() !== "" &&
-    ownerName.trim() !== "" &&
-    clientName.trim() !== "" &&
-    items.some((i) => i.description.trim() !== "");
-
-  const generatePDF = useCallback(() => {
-    if (!canDownload) return;
-
-    const doc = new jsPDF();
-    const margin = 14;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let y = margin;
-
-    doc.setFontSize(22);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${t.invoiceNumber}: ${invoiceNumber}`, margin, y);
-    y += 10;
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-
-    if (issueDate) {
-      doc.text(`${t.issueDate}: ${issueDate}`, margin, y);
-      y += 5;
-    }
-    if (dueDate) {
-      doc.text(`${t.dueDate}: ${dueDate}`, margin, y);
-      y += 5;
-    }
-    y += 6;
-
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text(t.yourData, margin, y);
-    y += 5;
-
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    if (ownerName) {
-      doc.text(ownerName, margin, y);
-      y += 4;
-    }
-    if (ownerNif) {
-      doc.text(`${t.nif}: ${ownerNif}`, margin, y);
-      y += 4;
-    }
-    if (ownerAddress) {
-      doc.text(ownerAddress, margin, y);
-      y += 4;
-    }
-    if (ownerCity || ownerPostalCode) {
-      doc.text(`${ownerPostalCode} ${ownerCity}`, margin, y);
-      y += 4;
-    }
-    if (ownerCountry) {
-      doc.text(ownerCountry, margin, y);
-      y += 4;
-    }
-    if (ownerPhone) {
-      doc.text(`${t.phone}: ${ownerPhone}`, margin, y);
-      y += 4;
-    }
-    if (ownerEmail) {
-      doc.text(ownerEmail, margin, y);
-      y += 4;
-    }
-    if (ownerIban) {
-      doc.text(`${t.iban}: ${ownerIban}`, margin, y);
-      y += 4;
-    }
-    y += 6;
-
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text(t.clientData, margin, y);
-    y += 5;
-
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    if (clientName) {
-      doc.text(clientName, margin, y);
-      y += 4;
-    }
-    if (clientNif) {
-      doc.text(`${t.nif}: ${clientNif}`, margin, y);
-      y += 4;
-    }
-    if (clientAddress) {
-      doc.text(clientAddress, margin, y);
-      y += 4;
-    }
-    if (clientCity || clientPostalCode) {
-      doc.text(`${clientPostalCode} ${clientCity}`, margin, y);
-      y += 4;
-    }
-    if (clientCountry) {
-      doc.text(clientCountry, margin, y);
-      y += 4;
-    }
-    if (clientPhone) {
-      doc.text(`${t.phone}: ${clientPhone}`, margin, y);
-      y += 4;
-    }
-    if (clientEmail) {
-      doc.text(clientEmail, margin, y);
-      y += 4;
+  // ✅ GENERACIÓN DE PDF CON DISEÑO MEJORADO (sin título, sin moneda)
+  const handleDownload = useCallback(() => {
+    if (!hasFormData) {
+      setDownloadError(tr.emptyForm);
+      return;
     }
 
-    y += 8;
+    try {
+      setDownloadError("");
+      const doc = new jsPDF();
 
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text(t.items, margin, y);
-    y += 6;
+      const marginLeft = 15;
+      const marginRight = 15;
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const topMargin = 20;
+      const bottomMargin = 20;
 
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
+      const ensureSpace = (cursor: number, heightNeeded: number) => {
+        if (cursor + heightNeeded > pageHeight - bottomMargin) {
+          doc.addPage();
+          return topMargin;
+        }
+        return cursor;
+      };
 
-    const colDesc = margin;
-    const colQty = margin + 80;
-    const colPrice = margin + 100;
-    const colDisc = margin + 120;
-    const colTax = margin + 140;
-    const colAmount = margin + 160;
+      let cursorY = topMargin;
 
-    doc.text(t.description, colDesc, y);
-    doc.text(t.quantity, colQty, y);
-    doc.text(t.price, colPrice, y);
-    doc.text(t.discount, colDisc, y);
-    doc.text(t.tax, colTax, y);
-    doc.text(t.amount, colAmount, y);
-    y += 5;
-
-    doc.setFont("helvetica", "normal");
-
-    items.forEach((item) => {
-      const qty = parseNumberFromInput(item.quantity);
-      const price = parseNumberFromInput(item.price);
-      const discountPct = parseNumberFromInput(item.discount);
-      const taxPct = parseNumberFromInput(item.tax);
-
-      const lineSubtotal = qty * price;
-      const lineDiscount = lineSubtotal * (discountPct / 100);
-      const lineAfterDiscount = lineSubtotal - lineDiscount;
-      const lineTax = lineAfterDiscount * (taxPct / 100);
-      const lineTotal = lineAfterDiscount + lineTax;
-
-      doc.text(item.description || "-", colDesc, y);
-      doc.text(item.quantity || "0", colQty, y);
-      doc.text(formatNumberForDisplay(price, lang, currency), colPrice, y);
-      doc.text(item.discount ? `${item.discount}%` : "0%", colDisc, y);
-      doc.text(item.tax ? `${item.tax}%` : "0%", colTax, y);
-      doc.text(formatNumberForDisplay(lineTotal, lang, currency), colAmount, y);
-
-      y += 5;
-    });
-
-    y += 6;
-
-    doc.setFont("helvetica", "bold");
-    doc.text(
-      `${t.subtotal}: ${formatNumberForDisplay(totals.subtotal, lang, currency)}`,
-      margin + 120,
-      y
-    );
-    y += 5;
-
-    if (totals.totalDiscountAmount > 0) {
-      doc.text(
-        `${t.totalDiscount}: -${formatNumberForDisplay(totals.totalDiscountAmount, lang, currency)}`,
-        margin + 120,
-        y
+      // Header (sin título, sin moneda)
+      cursorY = generatePDFHeader(
+        doc,
+        tr,
+        { invoiceNumber, issueDate, dueDate },
+        marginLeft,
+        marginRight,
+        cursorY
       );
-      y += 5;
-    }
 
-    if (totals.totalTaxAmount > 0) {
-      doc.text(
-        `${t.totalTax}: ${formatNumberForDisplay(totals.totalTaxAmount, lang, currency)}`,
-        margin + 120,
-        y
+      // Party details
+      cursorY = ensureSpace(cursorY, 55);
+      cursorY = generatePDFPartyDetails(
+        doc,
+        seller,
+        client,
+        tr,
+        marginLeft,
+        marginRight,
+        cursorY
       );
-      y += 5;
+
+      // Items table
+      cursorY = ensureSpace(cursorY, 20);
+      cursorY = generatePDFItemsTable(
+        doc,
+        items,
+        itemCalculations,
+        tr,
+        formatDecimal,
+        formatPercent,
+        formatAmount,
+        marginLeft,
+        marginRight,
+        cursorY,
+        pageHeight,
+        bottomMargin,
+        topMargin
+      );
+
+      // Totals
+      cursorY = ensureSpace(cursorY, 45);
+      cursorY = generatePDFTotals(
+        doc,
+        totals,
+        tr,
+        formatAmount,
+        marginLeft,
+        marginRight,
+        cursorY
+      );
+
+      // Notes
+      if (notes.trim()) {
+        cursorY = ensureSpace(cursorY, 20);
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const notesWidth = pageWidth - marginLeft - marginRight;
+        
+        doc.setFillColor(250, 250, 250);
+        const split = doc.splitTextToSize(notes, notesWidth - 6);
+        const notesHeight = split.length * 4 + 10;
+        
+        doc.roundedRect(marginLeft, cursorY, notesWidth, notesHeight, 2, 2, 'F');
+        doc.setDrawColor(229, 231, 235);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(marginLeft, cursorY, notesWidth, notesHeight, 2, 2, 'S');
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(115, 115, 115);
+        doc.text(tr.notes.toUpperCase(), marginLeft + 3, cursorY + 5);
+        
+        cursorY += 9;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(23, 23, 23);
+        doc.text(split, marginLeft + 3, cursorY);
+      }
+
+      const safeNumber = invoiceNumber || "sin-numero";
+      doc.save(`factura-${safeNumber}.pdf`);
+    } catch (error) {
+      console.error("Error generando PDF:", error);
+      setDownloadError(tr.pdfError);
     }
-
-    doc.setFontSize(12);
-    doc.text(
-      `${t.total}: ${formatNumberForDisplay(totals.total, lang, currency)}`,
-      margin + 120,
-      y
-    );
-
-    if (notes.trim()) {
-      y += 10;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text(t.notes, margin, y);
-      y += 5;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      const lines = doc.splitTextToSize(notes, pageWidth - 2 * margin);
-      doc.text(lines, margin, y);
-    }
-
-    doc.save(`factura_${invoiceNumber || "draft"}.pdf`);
   }, [
-    canDownload,
+    hasFormData,
+    tr,
     invoiceNumber,
     issueDate,
     dueDate,
-    ownerName,
-    ownerNif,
-    ownerPhone,
-    ownerEmail,
-    ownerAddress,
-    ownerCity,
-    ownerPostalCode,
-    ownerCountry,
-    ownerIban,
-    clientName,
-    clientNif,
-    clientPhone,
-    clientEmail,
-    clientAddress,
-    clientCity,
-    clientPostalCode,
-    clientCountry,
+    seller,
+    client,
+    itemCalculations,
     items,
-    notes,
     totals,
-    t,
-    lang,
-    currency,
+    notes,
+    formatDecimal,
+    formatPercent,
+    formatAmount,
   ]);
 
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebApplication",
-            "name": "TusFactus - Generador de Facturas",
-            "applicationCategory": "BusinessApplication",
-            "offers": {
-              "@type": "Offer",
-              "price": "0",
-              "priceCurrency": "EUR"
-            },
-            "description": "Generador de facturas profesionales gratis online. Crea y descarga facturas en PDF instantáneamente sin registro.",
-            "url": "https://www.tusfactus.com",
-            "screenshot": "https://www.tusfactus.com/logo-factus-ok.png",
-            "operatingSystem": "Web",
-            "inLanguage": "es",
-            "featureList": [
-              "Generación de facturas PDF",
-              "Descarga instantánea",
-              "Sin registro requerido",
-              "Modo oscuro",
-              "Multimoneda"
-            ]
-          })
-        }}
-      />
-      <div className={`app-shell app-shell--${theme}`}>
-        <div className="app-shell__inner">
-          <header className="app-header">
-            <a
-              href="https://www.tusfactus.com"
-              className="app-logo"
-              aria-label="TusFactus logo"
-            >
-              <img
-                src="/logo-factus-ok.png"
-                alt="TusFactus logo"
-                width="180"
-                height="48"
-              />
-            </a>
-
-            <div className="app-header__controls">
-              <div className="control-group">
-                <label htmlFor="lang-select" className="control-label">
-                  {t.language}
-                </label>
-                <select
-                  id="lang-select"
-                  className="control-select"
-                  value={lang}
-                  onChange={(e) => setLang(e.target.value as Language)}
-                >
-                  {(Object.keys(languageLabel) as Language[]).map((l) => (
-                    <option key={l} value={l}>
-                      {languageLabel[l]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="control-group">
-                <label htmlFor="currency-select" className="control-label">
-                  {t.currency}
-                </label>
-                <select
-                  id="currency-select"
-                  className="control-select"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
-                >
-                  {(Object.keys(currencyLabel) as CurrencyCode[]).map((c) => (
-                    <option key={c} value={c}>
-                      {currencyLabel[c]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="control-group">
-                <label htmlFor="theme-toggle" className="control-label">
-                  {t.theme}
-                </label>
-                <button
-                  id="theme-toggle"
-                  className="theme-toggle"
-                  onClick={() =>
-                    setTheme((prev) => (prev === "light" ? "dark" : "light"))
-                  }
-                  aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-                >
-                  <span className="sr-only">
-                    {theme === "light" ? "Dark mode" : "Light mode"}
-                  </span>
-                  <span
-                    className={`theme-toggle__knob ${
-                      theme === "dark" ? "theme-toggle__knob--right" : ""
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-          </header>
-
-          <div className="card card--top-grid">
-            <div className="field">
-              <label htmlFor="invoice-number">{t.invoiceNumber}</label>
-              <input
-                id="invoice-number"
-                type="text"
-                value={invoiceNumber}
-                onChange={(e) => setInvoiceNumber(e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="issue-date">{t.issueDate}</label>
-              <input
-                id="issue-date"
-                type="date"
-                value={issueDate}
-                onChange={(e) => setIssueDate(e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="due-date">{t.dueDate}</label>
-              <input
-                id="due-date"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
+    <div className={`app-shell app-shell--${theme}`}>
+      <div className="app-shell__inner">
+        {/* Header */}
+        <header className="app-header">
+          <div className="app-logo">
+            <img
+              src="/logo-factus-ok.png"
+              alt="TusfactUS"
+              style={{ height: "100%", width: "auto", objectFit: "contain" }}
+            />
           </div>
 
-          <div className="card card--two-columns">
-            <div className="card-column">
-              <h2 className="card-title">{t.yourData}</h2>
-              <div className="field-grid">
-                <div className="field">
-                  <label htmlFor="owner-name">{t.nameCompany}</label>
-                  <input
-                    id="owner-name"
-                    type="text"
-                    placeholder={t.nameCompany}
-                    value={ownerName}
-                    onChange={(e) => setOwnerName(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="owner-nif">{t.nif}</label>
-                  <input
-                    id="owner-nif"
-                    type="text"
-                    placeholder="X1234567Z"
-                    value={ownerNif}
-                    onChange={(e) => setOwnerNif(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="owner-phone">{t.phone}</label>
-                  <input
-                    id="owner-phone"
-                    type="tel"
-                    placeholder="+34 ..."
-                    value={ownerPhone}
-                    onChange={(e) => setOwnerPhone(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="owner-email">{t.email}</label>
-                  <input
-                    id="owner-email"
-                    type="email"
-                    placeholder="email@dominio.com"
-                    value={ownerEmail}
-                    onChange={(e) => setOwnerEmail(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="owner-address">{t.address}</label>
-                  <input
-                    id="owner-address"
-                    type="text"
-                    placeholder={t.address}
-                    value={ownerAddress}
-                    onChange={(e) => setOwnerAddress(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="owner-city">{t.city}</label>
-                  <input
-                    id="owner-city"
-                    type="text"
-                    placeholder={t.city}
-                    value={ownerCity}
-                    onChange={(e) => setOwnerCity(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="owner-postal-code">{t.postalCode}</label>
-                  <input
-                    id="owner-postal-code"
-                    type="text"
-                    placeholder="08001"
-                    value={ownerPostalCode}
-                    onChange={(e) => setOwnerPostalCode(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="owner-country">{t.country}</label>
-                  <input
-                    id="owner-country"
-                    type="text"
-                    placeholder="España"
-                    value={ownerCountry}
-                    onChange={(e) => setOwnerCountry(e.target.value)}
-                  />
-                </div>
-                <div className="field field--full">
-                  <label htmlFor="owner-iban">{t.iban}</label>
-                  <input
-                    id="owner-iban"
-                    type="text"
-                    placeholder="ES00 0000 0000 0000 0000 0000"
-                    value={ownerIban}
-                    onChange={(e) => setOwnerIban(e.target.value)}
-                  />
-                </div>
-              </div>
+          <div className="app-header__controls">
+            <div className="control-group">
+              <label className="control-label" htmlFor="language-select">
+                {tr.language}
+              </label>
+              <select
+                id="language-select"
+                className="control-select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+              >
+                {Object.entries(languageLabel).map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="card-column">
-              <h2 className="card-title">{t.clientData}</h2>
-              <div className="field-grid">
-                <div className="field">
-                  <label htmlFor="client-name">{t.clientName}</label>
-                  <input
-                    id="client-name"
-                    type="text"
-                    placeholder={t.clientName}
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="client-nif">{t.nif}</label>
-                  <input
-                    id="client-nif"
-                    type="text"
-                    placeholder="B12345678"
-                    value={clientNif}
-                    onChange={(e) => setClientNif(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="client-phone">{t.phone}</label>
-                  <input
-                    id="client-phone"
-                    type="tel"
-                    placeholder="+34 ..."
-                    value={clientPhone}
-                    onChange={(e) => setClientPhone(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="client-email">{t.email}</label>
-                  <input
-                    id="client-email"
-                    type="email"
-                    placeholder="email@cliente.com"
-                    value={clientEmail}
-                    onChange={(e) => setClientEmail(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="client-address">{t.address}</label>
-                  <input
-                    id="client-address"
-                    type="text"
-                    placeholder={t.address}
-                    value={clientAddress}
-                    onChange={(e) => setClientAddress(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="client-city">{t.city}</label>
-                  <input
-                    id="client-city"
-                    type="text"
-                    placeholder={t.city}
-                    value={clientCity}
-                    onChange={(e) => setClientCity(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="client-postal-code">{t.postalCode}</label>
-                  <input
-                    id="client-postal-code"
-                    type="text"
-                    placeholder="08001"
-                    value={clientPostalCode}
-                    onChange={(e) => setClientPostalCode(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="client-country">{t.country}</label>
-                  <input
-                    id="client-country"
-                    type="text"
-                    placeholder="España"
-                    value={clientCountry}
-                    onChange={(e) => setClientCountry(e.target.value)}
-                  />
-                </div>
-              </div>
+            <div className="control-group">
+              <label className="control-label" htmlFor="currency-select">
+                {tr.currency}
+              </label>
+              <select
+                id="currency-select"
+                className="control-select"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
+              >
+                {(Object.keys(currencyLabel) as CurrencyCode[]).map((code) => (
+                  <option key={code} value={code}>
+                    {currencyLabel[code]}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          <div className="card">
-            <div className="card-header">
-              <h2 className="card-title">{t.items}</h2>
-              <button className="btn-secondary" onClick={addItem}>
-                {t.addItem}
+            <div className="control-group">
+              <span className="control-label">{tr.theme}</span>
+              <button
+                type="button"
+                className={`theme-toggle theme-toggle--${theme}`}
+                onClick={() =>
+                  setTheme((prev) => (prev === "light" ? "dark" : "light"))
+                }
+                aria-pressed={theme === "dark"}
+                aria-label={theme === "light" ? tr.themeDark : tr.themeLight}
+              >
+                <span
+                  className={`theme-toggle__knob ${
+                    theme === "dark" ? "theme-toggle__knob--right" : ""
+                  }`}
+                />
+                <span className="sr-only">
+                  {theme === "light" ? tr.themeLight : tr.themeDark}
+                </span>
               </button>
             </div>
-
-            <div className="items-table">
-              <div className="items-table__header">
-                <span>{t.description}</span>
-                <span>{t.quantity}</span>
-                <span>{t.price}</span>
-                <span>{t.discount}</span>
-                <span>{t.tax}</span>
-                <span>{t.amount}</span>
-                <span />
-              </div>
-              <div className="items-table__body">
-                {items.map((item, index) => {
-                  const qty = parseNumberFromInput(item.quantity);
-                  const price = parseNumberFromInput(item.price);
-                  const discountPct = parseNumberFromInput(item.discount);
-                  const taxPct = parseNumberFromInput(item.tax);
-
-                  const lineSubtotal = qty * price;
-                  const lineDiscount = lineSubtotal * (discountPct / 100);
-                  const lineAfterDiscount = lineSubtotal - lineDiscount;
-                  const lineTax = lineAfterDiscount * (taxPct / 100);
-                  const lineTotal = lineAfterDiscount + lineTax;
-
-                  return (
-                    <div key={index} className="items-table__row">
-                      <input
-                        type="text"
-                        value={item.description}
-                        onChange={(e) =>
-                          updateItem(index, "description", e.target.value)
-                        }
-                        placeholder={t.description}
-                      />
-                      <input
-                        type="text"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          updateItem(index, "quantity", e.target.value, true)
-                        }
-                        placeholder="1"
-                      />
-                      <input
-                        type="text"
-                        value={item.price}
-                        onChange={(e) =>
-                          updateItem(index, "price", e.target.value, true)
-                        }
-                        placeholder="0"
-                      />
-                      <input
-                        type="text"
-                        value={item.discount}
-                        onChange={(e) =>
-                          updateItem(index, "discount", e.target.value, true)
-                        }
-                        placeholder="0"
-                      />
-                      <input
-                        type="text"
-                        value={item.tax}
-                        onChange={(e) =>
-                          updateItem(index, "tax", e.target.value, true)
-                        }
-                        placeholder="0"
-                      />
-                      <div className="items-table__amount">
-                        {formatNumberForDisplay(lineTotal, lang, currency)}
-                      </div>
-                      {items.length > 1 && (
-                        <button
-                          className="items-table__remove"
-                          onClick={() => removeItem(index)}
-                          aria-label={`Remove item ${index + 1}`}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
+        </header>
 
-          <div className="bottom-grid">
-            <div className="card">
-              <h2 className="card-title">{t.notes}</h2>
+        {/* Top card */}
+        <section className="card card--top-grid">
+          <div className="field">
+            <label htmlFor="invoice-number">{tr.number}</label>
+            <input
+              id="invoice-number"
+              type="text"
+              value={invoiceNumber}
+              onChange={(e) => setInvoiceNumber(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="issue-date">{tr.issueDate}</label>
+            <input
+              id="issue-date"
+              type="date"
+              value={issueDate}
+              onChange={(e) => setIssueDate(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="due-date">{tr.dueDate}</label>
+            <input
+              id="due-date"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+        </section>
+
+        {/* Seller / Client */}
+        <section className="card card--two-columns">
+          <div className="card-column">
+            <h2 className="card-title">{tr.yourData}</h2>
+            <div className="field-grid">
               <div className="field">
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={t.notes}
+                <label htmlFor="seller-name">{tr.name}</label>
+                <input
+                  id="seller-name"
+                  type="text"
+                  value={seller.name}
+                  onChange={(e) => handleSellerChange("name", e.target.value)}
+                  placeholder={tr.name}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="seller-nif">{tr.nif}</label>
+                <input
+                  id="seller-nif"
+                  type="text"
+                  value={seller.nif}
+                  onChange={(e) => handleSellerChange("nif", e.target.value)}
+                  placeholder="X1234567Z"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="seller-phone">{tr.phone}</label>
+                <input
+                  id="seller-phone"
+                  type="tel"
+                  value={seller.phone}
+                  onChange={(e) => handleSellerChange("phone", e.target.value)}
+                  placeholder="+34 ..."
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="seller-email">{tr.email}</label>
+                <input
+                  id="seller-email"
+                  type="email"
+                  value={seller.email}
+                  onChange={(e) => handleSellerChange("email", e.target.value)}
+                  placeholder="email@dominio.com"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="seller-address">{tr.address}</label>
+                <input
+                  id="seller-address"
+                  type="text"
+                  value={seller.address}
+                  onChange={(e) => handleSellerChange("address", e.target.value)}
+                  placeholder="Calle, número"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="seller-city">{tr.city}</label>
+                <input
+                  id="seller-city"
+                  type="text"
+                  value={seller.city}
+                  onChange={(e) => handleSellerChange("city", e.target.value)}
+                  placeholder={tr.city}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="seller-postal">{tr.postalCode}</label>
+                <input
+                  id="seller-postal"
+                  type="text"
+                  value={seller.postalCode}
+                  onChange={(e) =>
+                    handleSellerChange("postalCode", e.target.value)
+                  }
+                  placeholder="08001"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="seller-country">{tr.country}</label>
+                <input
+                  id="seller-country"
+                  type="text"
+                  value={seller.country}
+                  onChange={(e) =>
+                    handleSellerChange("country", e.target.value)
+                  }
+                  placeholder="España"
+                />
+              </div>
+              <div className="field field--full">
+                <label htmlFor="seller-iban">{tr.iban}</label>
+                <input
+                  id="seller-iban"
+                  type="text"
+                  value={seller.iban}
+                  onChange={(e) => handleSellerChange("iban", e.target.value)}
+                  placeholder="ES00 0000 0000 0000 0000 0000"
                 />
               </div>
             </div>
+          </div>
 
-            <div className="bottom-right">
-              <div className="card card--totals">
-                <dl className="totals">
-                  <div className="totals__row">
-                    <dt>{t.subtotal}</dt>
-                    <dd>
-                      {formatNumberForDisplay(totals.subtotal, lang, currency)}
-                    </dd>
-                  </div>
-                  {totals.totalDiscountAmount > 0 && (
-                    <div className="totals__row">
-                      <dt>{t.totalDiscount}</dt>
-                      <dd>
-                        -
-                        {formatNumberForDisplay(
-                          totals.totalDiscountAmount,
-                          lang,
-                          currency
-                        )}
-                      </dd>
-                    </div>
-                  )}
-                  {totals.totalTaxAmount > 0 && (
-                    <div className="totals__row">
-                      <dt>{t.totalTax}</dt>
-                      <dd>
-                        {formatNumberForDisplay(
-                          totals.totalTaxAmount,
-                          lang,
-                          currency
-                        )}
-                      </dd>
-                    </div>
-                  )}
-                  <div className="totals__row totals__row--total">
-                    <dt>{t.total}</dt>
-                    <dd>
-                      {formatNumberForDisplay(totals.total, lang, currency)}
-                    </dd>
-                  </div>
-                </dl>
+          <div className="card-column">
+            <h2 className="card-title">{tr.clientData}</h2>
+            <div className="field-grid">
+              <div className="field">
+                <label htmlFor="client-name">{tr.clientName}</label>
+                <input
+                  id="client-name"
+                  type="text"
+                  value={client.name}
+                  onChange={(e) => handleClientChange("name", e.target.value)}
+                  placeholder="Cliente"
+                />
               </div>
+              <div className="field">
+                <label htmlFor="client-nif">{tr.nif}</label>
+                <input
+                  id="client-nif"
+                  type="text"
+                  value={client.nif}
+                  onChange={(e) => handleClientChange("nif", e.target.value)}
+                  placeholder="B12345678"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="client-phone">{tr.phone}</label>
+                <input
+                  id="client-phone"
+                  type="tel"
+                  value={client.phone}
+                  onChange={(e) => handleClientChange("phone", e.target.value)}
+                  placeholder="+34 ..."
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="client-email">{tr.email}</label>
+                <input
+                  id="client-email"
+                  type="email"
+                  value={client.email}
+                  onChange={(e) => handleClientChange("email", e.target.value)}
+                  placeholder="email@cliente.com"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="client-address">{tr.address}</label>
+                <input
+                  id="client-address"
+                  type="text"
+                  value={client.address}
+                  onChange={(e) =>
+                    handleClientChange("address", e.target.value)
+                  }
+                  placeholder="Calle, número"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="client-city">{tr.city}</label>
+                <input
+                  id="client-city"
+                  type="text"
+                  value={client.city}
+                  onChange={(e) => handleClientChange("city", e.target.value)}
+                  placeholder={tr.city}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="client-postal">{tr.postalCode}</label>
+                <input
+                  id="client-postal"
+                  type="text"
+                  value={client.postalCode}
+                  onChange={(e) =>
+                    handleClientChange("postalCode", e.target.value)
+                  }
+                  placeholder="08001"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="client-country">{tr.country}</label>
+                <input
+                  id="client-country"
+                  type="text"
+                  value={client.country}
+                  onChange={(e) =>
+                    handleClientChange("country", e.target.value)
+                  }
+                  placeholder="España"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
 
-              <button
-                className="btn-primary"
-                onClick={generatePDF}
-                disabled={!canDownload}
-              >
-                {t.downloadPDF}
-              </button>
+        {/* Items */}
+        <section className="card">
+          <div className="card-header">
+            <h2 className="card-title">{tr.concepts}</h2>
+          </div>
+          <div className="items-table">
+            <div className="items-table__header">
+              <span>{tr.concept}</span>
+              <span>{tr.unitPrice}</span>
+              <span>{tr.qty}</span>
+              <span>{tr.discount}</span>
+              <span>{tr.vat}</span>
+              <span>{tr.irpf}</span>
+              <span>{tr.amount}</span>
+              <span />
+            </div>
+            <div className="items-table__body">
+              {items.map((item, index) => {
+                const calc = itemCalculations[index];
+                return (
+                  <div key={item.id} className="items-table__row">
+                    <input
+                      type="text"
+                      placeholder={tr.concept}
+                      value={item.description}
+                      onChange={(e) =>
+                        updateItem(item.id, "description", e.target.value)
+                      }
+                      aria-label={`${tr.concept} ${index + 1}`}
+                    />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9.,]*"
+                      value={item.unitPrice}
+                      onChange={(e) =>
+                        updateItem(item.id, "unitPrice", e.target.value)
+                      }
+                      aria-label={`${tr.unitPrice} ${index + 1}`}
+                    />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9.,]*"
+                      value={item.quantity}
+                      onChange={(e) =>
+                        updateItem(item.id, "quantity", e.target.value)
+                      }
+                      aria-label={`${tr.qty} ${index + 1}`}
+                    />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9.,]*"
+                      value={item.discount}
+                      onChange={(e) =>
+                        updateItem(item.id, "discount", e.target.value)
+                      }
+                      onBlur={() => clampPercentField(item.id, "discount")}
+                      aria-label={`${tr.discount} ${index + 1}`}
+                    />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9.,]*"
+                      value={item.vat}
+                      onChange={(e) =>
+                        updateItem(item.id, "vat", e.target.value)
+                      }
+                      onBlur={() => clampPercentField(item.id, "vat")}
+                      aria-label={`${tr.vat} ${index + 1}`}
+                    />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9.,]*"
+                      value={item.irpf}
+                      onChange={(e) =>
+                        updateItem(item.id, "irpf", e.target.value)
+                      }
+                      onBlur={() => clampPercentField(item.id, "irpf")}
+                      aria-label={`${tr.irpf} ${index + 1}`}
+                    />
+                    <div className="items-table__amount">
+                      {formatAmount(calc.lineTotal || 0)}
+                    </div>
+                    <button
+                      type="button"
+                      className="items-table__remove"
+                      onClick={() => removeItem(item.id)}
+                      aria-label={`Eliminar concepto: ${
+                        item.description || "Sin descripción"
+                      }`}
+                      title="Eliminar concepto"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <footer className="app-footer">
-            © {new Date().getFullYear()} TusFactus
-          </footer>
-        </div>
+          <button type="button" className="btn-secondary" onClick={addItem}>
+            {tr.addConcept}
+          </button>
+        </section>
+
+        {/* Notes + Totals */}
+        <section className="bottom-grid">
+          <div className="card">
+            <div className="field field--full">
+              <label htmlFor="notes">{tr.notes}</label>
+              <textarea
+                id="notes"
+                rows={4}
+                placeholder={tr.defaultNotes}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="bottom-right">
+            <div className="card card--totals">
+              <dl className="totals">
+                <div className="totals__row">
+                  <dt>{tr.totalsTaxBase}</dt>
+                  <dd>{formatAmount(totals.base)}</dd>
+                </div>
+                <div className="totals__row">
+                  <dt>{tr.totalsVat}</dt>
+                  <dd>{formatAmount(totals.vatTotal)}</dd>
+                </div>
+                <div className="totals__row">
+                  <dt>{tr.totalsIrpf}</dt>
+                  <dd>{formatAmount(totals.irpfTotal)}</dd>
+                </div>
+                <div className="totals__row totals__row--total">
+                  <dt>{tr.totalsTotal}</dt>
+                  <dd>{formatAmount(totals.total)}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleDownload}
+              disabled={!hasFormData}
+            >
+              {tr.createAndDownload}
+            </button>
+            {downloadError && !hasFormData && (
+              <p className="form-warning" role="alert">
+                {downloadError}
+              </p>
+            )}
+          </div>
+        </section>
+
+        <footer className="app-footer">
+          <p>
+            Esta web no guarda ninguna información de tus facturas. Todos los
+            datos se procesan únicamente en tu navegador.
+          </p>
+        </footer>
       </div>
-    </>
+    </div>
   );
 }
